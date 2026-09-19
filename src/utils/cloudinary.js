@@ -1,41 +1,49 @@
-// cloudinary is a cloud-based service that provides an end-to-end image and video management solution, including uploads, storage, manipulations, optimizations, and delivery. It allows developers to easily integrate media management capabilities into their applications.
-
-import { v2 as cloudinary } from 'cloudinary';
-
-import fs from 'fs'; // fs is a built-in Node.js module that helps in interacting with the file system. It provides methods to read, write, and manipulate files and directories.
-
-
+import { v2 as cloudinary } from "cloudinary";
+import fs from "fs";
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
+    api_secret: process.env.CLOUDINARY_API_SECRET
 });
-
-
-
-
-
+ 
 const uploadCloudinary = async (localFilePath) => {
     try {
-        if(!localFilePath) return null;
 
-        // Upload the file to Cloudinary using the uploader 
+        if (!localFilePath) {
+            return null;
+        }
 
-        const response = await cloudinary.uploader.upload(localFilePath, {resource_type: 'auto'});
+        console.log("Uploading file:", localFilePath);
+ 
+        // uplode file 
+        const response = await cloudinary.uploader.upload(
+            localFilePath,
+            {
+                resource_type: "auto"
+            }
+        );
 
-        // file has been uploaded to cloudinary
+        console.log("Cloudinary upload successful:");
+        console.log(response.url);
+        
+        // Delete temporary local file after successful upload
+        fs.unlinkSync(localFilePath)
+        return response;
+      
+    } catch (error) {
 
-        console.log('File uploaded to Cloudinary:', response.url);
+        console.log("Cloudinary upload failed:");
+        console.log(error);
 
-        return response; // Return the response object containing details about the uploaded file
+        // Delete temporary file only if it exists
+        if (localFilePath && fs.existsSync(localFilePath)) {
+            fs.unlinkSync(localFilePath);
+        }
+
+        return null;
     }
+};
 
-    catch (error) {
-        fs.unlinkSync(localFilePath); // removen the locally saved temp file as the upload operation failed
-        return null ;
-   
-    }
- }
-    
 export { uploadCloudinary };
+ 

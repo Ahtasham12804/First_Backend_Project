@@ -29,12 +29,12 @@ const userSchema = new Schema(
         },
 
         avatar: {
-            type: String, // cloudinary url 
+            type: String,  
             required: true
         },
 
         coverImage:{
-            type: String, // cloudinary url
+            type: String,
         },
 
 
@@ -59,11 +59,10 @@ const userSchema = new Schema(
 )
 
 
-userSchema.pre('save', async function(next) { // ye pre save hook hai jo user save hone se pehle run hota hai
-    if(!this.isModified('password')) return next(); // agar password modify nahi hua hai to next() call karenge
+userSchema.pre('save', async function() { // ye pre save hook hai jo user save hone se pehle run hota hai
+    if(!this.isModified('password')) return; // agar password modify nahi hua hai to next() call karenge
 
     this.password = await bcrypt.hash(this.password, 10); // password ko hash karenge 10 rounds ke saath
-    next();
 })
 
 
