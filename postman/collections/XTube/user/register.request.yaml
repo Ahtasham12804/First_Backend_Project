@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{server}}{/users/register"
+method: POST
+order: 1789857766479
