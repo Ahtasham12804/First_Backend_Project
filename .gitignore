@@ -119,7 +119,6 @@ dist
 
 # End of https://mrkandreev.name/snippets/gitignore-generator/#Node
 
+.postman/
+postman/
 
-# Postman
-*.postman_environment.json
-*.postman_environment
