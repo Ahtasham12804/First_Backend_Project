@@ -13,7 +13,7 @@ app.use(cors({
 }))
 
 
-
+ 
 app.use (express.json({limit:"16kb"})) // iska kaam h json formate me aayi request ko read krna or limit ka kaam h ki kitni badi request ko read krna h .. agar request limit se badi h to express usko reject kr dega ..
 
 app.use(express.urlencoded({extended:true, limit:"16kb"})) // ye URL encoded formate me aayi request ko parse krta h .. extended:true ka matlab h ki agar request me nested object h to usko bhi parse kr dega ..
