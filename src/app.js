@@ -39,15 +39,16 @@ app.use(cookieParser()) // iska kaam h ki server se user ke browser me cookie ac
 
 // routes import
 import userRouter from "./routes/user.routes.js";
+import VideoRouter from "./routes/video.route.js";
 
 
 
 
 
 // routes declaration
-app.use("/api/v1/users", userRouter) // iska kaam h ki jab bhi user /users ke sath koi request kare to usko userRoutes me bhej dega .. 
-//eg :- http///localhost:5000/api/v1/users/register
+app.use("/api/v1/users", userRouter) 
+app.use("/api/v1/videos", VideoRouter)
 
 
 
-export {app}
+export {app};

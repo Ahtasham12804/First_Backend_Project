@@ -1,18 +1,15 @@
  import mongoose, { Schema } from 'mongoose'; 
  import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2"; 
 
-
-
  const videoSchema = new Schema(
     {
-
         videoFile: {
-            type: String, // cloudinary url 
+            type: String, 
             required: true
         },
 
         thumbnail: {
-            type: String, // cloudinary url 
+            type: String, 
             required: true
         },
 
@@ -33,24 +30,22 @@
 
         views: {
             type: Number,
-            default: 0 // views 0 se start honge jab video upload hoga
+            default: 0 
         },
 
-        isPublished: {  // isPublished se hum ye check karenge ki video public hai ya nahi
+        isPublished: {  
             type: Boolean,
             default: true 
         },
 
         owner: {
             type: Schema.Types.ObjectId,
-            ref: "User", // owner ka reference user model se hai 
+            ref: "User", 
         },
 
 
     }, {timestamps: true})
 
 
-
-
-videoSchema.plugin(mongooseAggregatePaginate) // ye plugin humne video model me lagaya hai taki hum video ko paginate kar sake
+videoSchema.plugin(mongooseAggregatePaginate) 
  export const Video = mongoose.model('Video', videoSchema)
