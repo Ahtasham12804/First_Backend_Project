@@ -5,6 +5,11 @@ import {User} from "../models/user.model.js";
 import {uploadCloudinary} from "../utils/cloudinary.js";
 import {ApiError} from "../utils/API_Error.js";
 import { ApiResponse } from "../utils/API_Response.js";
+import { Comment } from "../models/comment.model.js";   
+import {Like} from "../models/like.model.js";
+import {Playlist} from "../models/playlist.model.js";
+import {deleteFromCloudinary} from "../utils/cloudinary.js";
+
 
 const publishAVideo = asyncHandler(async (req, res) => {
 
@@ -235,5 +240,105 @@ const updateVideo = asyncHandler(async (req, res) => {
     return res
         .status(200)
         .json(new ApiResponse(200, updatedVideo, "Video details updated successfully"))
-        })
-export {publishAVideo, getVideoById, updateVideo}
+    
+})
+
+
+
+const extractPublicId = (url) => {
+    if (!url) return null;
+    const parts = url.split('/');
+    const filename = parts.pop();
+    const publicID = filename.split('.')[0];
+    return publicID;
+}; 
+const deleteVideo = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    // 1. Validate ObjectId
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid video ID");
+    }
+
+    // 2. Find the video
+    const video = await Video.findById(videoId);
+    if (!video) {
+        throw new ApiError(404, "Video not found");
+    }
+
+    // 3. Check ownership
+    if (video.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "You are not authorized to delete this video");
+    }
+
+    // 4. Delete assests from Cloudinary
+    const videoPublicId = extractPublicId(video.videoFile);
+    const thumbnailPublicId = extractPublicId(video.thumbnail);
+
+    await Promise.all([
+        videoPublicId ? deleteFromCloudinary(videoPublicId, "video") : Promise.resolve(),
+        thumbnailPublicId ? deleteFromCloudinary(thumbnailPublicId, "image") : Promise.resolve()
+    ]);
+
+
+    // 5. Delete related records
+    await Promise.all([
+        Comment.deleteMany({ video: videoId }),
+        Like.deleteMany({ video: videoId }),
+
+        Playlist.updateMany(
+            { videos: videoId },
+            { $pull: { videos: videoId } }
+        ),
+
+        User.updateMany(
+            { watchHistory: videoId },
+            { $pull: { watchHistory: videoId } }
+        )
+    ]);
+
+    await Video.findByIdAndDelete(videoId);
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, null, "Video deleted successfully"));
+});
+
+
+
+const togglePublishStatus = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    // 1. Validate ObjectId
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid video ID");
+    }
+
+    // 2. Find the video
+    const video = await Video.findById(videoId);
+    if (!video) {
+        throw new ApiError(404, "Video not found");
+    }
+
+    // 3. Check ownership
+    if (video.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "You are not authorized to toggle publish status of this video");
+    }
+
+    // 4. Toggle publish status
+    const updatedVideo = await Video.findByIdAndUpdate(
+        videoId,
+        { $set: { isPublished: !video.isPublished } },
+        { new: true }
+    );
+
+    if (!updatedVideo) {
+        throw new ApiError(500, "Failed to toggle publish status");
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, updatedVideo, "Publish status toggled successfully"));
+});
+
+export {publishAVideo, getVideoById, updateVideo, deleteVideo}

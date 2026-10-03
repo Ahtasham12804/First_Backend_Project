@@ -36,6 +36,9 @@ const uploadCloudinary = async (localFilePath) => {
         console.log("Cloudinary upload failed:");
         console.log(error);
 
+
+
+
         // Delete temporary file only if it exists
         if (localFilePath && fs.existsSync(localFilePath)) {
             fs.unlinkSync(localFilePath);
@@ -45,5 +48,20 @@ const uploadCloudinary = async (localFilePath) => {
     }
 };
 
-export { uploadCloudinary };
+
+
+
+const deleteFromCloudinary = async (publicId, resourceType = "image") => {
+    try {
+        if (!publicId) return null;
+        return await cloudinary.uploader.destroy(publicId, {
+            resource_type: resourceType
+        });
+    } catch (error) {
+        console.error("Error deleting from Cloudinary:", error);
+        return null;
+    }
+};
+
+export { uploadCloudinary, deleteFromCloudinary };
  
