@@ -7,9 +7,7 @@ import { verifyJWT } from "../middlewares/auth.middlewares.js";
 const router = Router();
 router.use(verifyJWT)
 
-router.route("/publish").get(getAllVideos)
-
-.post(
+router.route("/publish").post(
     upload.fields([
         {
             name: "videoFile",
@@ -23,7 +21,7 @@ router.route("/publish").get(getAllVideos)
     publishAVideo
 );
 
-
+router.route("/getAllVideos").get(getAllVideos);
 router.route("/:videoId").get(getVideoById);
 router.route("/:videoId").patch(updateVideo);
 router.route("/:videoId").delete(deleteVideo);
