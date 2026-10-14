@@ -11,6 +11,138 @@ import {Playlist} from "../models/playlist.model.js";
 import {deleteFromCloudinary} from "../utils/cloudinary.js";
 
 
+const getAllVideos = asyncHandler(async (req, res) => {
+    const {
+        page = "1",
+        limit = "10",
+        query,
+        sortBy = "createdAt",
+        sortType = "desc",
+        userId
+    } = req.query;
+
+    const pageNumber = Number(page);
+    const limitNumber = Number(limit);
+
+    if (!Number.isInteger(pageNumber) || pageNumber < 1) {
+        throw new ApiError(400, "Invalid page number");
+    }
+
+    if (
+        !Number.isInteger(limitNumber) ||
+        limitNumber < 1 ||
+        limitNumber > 50
+    ) {
+        throw new ApiError(400, "Limit must be between 1 and 50");
+    }
+
+   
+    const allowedSortFields = ["createdAt", "views", "title"];
+
+    if (!allowedSortFields.includes(sortBy)) {
+        throw new ApiError(400, "Invalid sort field");
+    }
+
+    const normalizedSortType = sortType.toLowerCase();
+
+    if (!["asc", "desc"].includes(normalizedSortType)) {
+        throw new ApiError(400, "Invalid sort type");
+    }
+
+    const matchCondition = {
+        isPublished: true
+    };
+
+    if (userId) {
+        if (!isValidObjectId(userId)) {
+            throw new ApiError(400, "Invalid user ID");
+        }
+
+        matchCondition.owner = new mongoose.Types.ObjectId(userId);
+
+      
+        if (req.user?._id?.toString() === userId) {
+            delete matchCondition.isPublished;
+        }
+    }
+
+    
+    if (query?.trim()) {
+        const searchTerm = query.trim();
+
+        matchCondition.$or = [
+            { title: { $regex: searchTerm, $options: "i" } },
+            { description: { $regex: searchTerm, $options: "i" } }
+        ];
+    }
+
+    const sortCriteria = {
+        [sortBy]: normalizedSortType === "asc" ? 1 : -1,
+        _id: -1
+    };
+ 
+    
+    const pipeline = [
+        {
+            $match: matchCondition
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                    {
+                        $project: {
+                            fullname: 1,
+                            username: 1,
+                            avatar: 1
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $addFields: {
+                owner: {
+                    $first: "$owner"
+                }
+            }
+        },
+        {
+            $sort: sortCriteria
+        }
+    ];
+
+    const options = {
+        page: pageNumber,
+        limit: limitNumber,
+        customLabels: {
+            docs: "videos",
+            totalDocs: "totalVideos"
+        }
+    };
+
+   
+    const videoAggregate = Video.aggregate(pipeline);
+
+    const videos = await Video.aggregatePaginate(
+        videoAggregate,
+        options
+    );
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            videos,
+            "Videos fetched successfully"
+        )
+    );
+});
+
+
+
 const publishAVideo = asyncHandler(async (req, res) => {
 
     const { title, description} = req.body
@@ -260,7 +392,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid video ID");
     }
 
-    // 2. Find the video
+   
     const video = await Video.findById(videoId);
     if (!video) {
         throw new ApiError(404, "Video not found");
@@ -309,23 +441,19 @@ const deleteVideo = asyncHandler(async (req, res) => {
 const togglePublishStatus = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
 
-    // 1. Validate ObjectId
     if (!isValidObjectId(videoId)) {
         throw new ApiError(400, "Invalid video ID");
     }
 
-    // 2. Find the video
     const video = await Video.findById(videoId);
     if (!video) {
         throw new ApiError(404, "Video not found");
     }
 
-    // 3. Check ownership
     if (video.owner.toString() !== req.user._id.toString()) {
         throw new ApiError(403, "You are not authorized to toggle publish status of this video");
     }
 
-    // 4. Toggle publish status
     const updatedVideo = await Video.findByIdAndUpdate(
         videoId,
         { $set: { isPublished: !video.isPublished } },
@@ -340,5 +468,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
         .status(200)
         .json(new ApiResponse(200, updatedVideo, "Publish status toggled successfully"));
 });
+  
 
-export {publishAVideo, getVideoById, updateVideo, deleteVideo}
+
+export {publishAVideo, getVideoById, updateVideo, deleteVideo, togglePublishStatus};
